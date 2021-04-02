@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<!--    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>医疗资源可视化</title>
+	<link rel="stylesheet" href="./css/alert.css">
+	 <!-- <link href="https://a.amap.com/Loca/static/manual/example/style/demo.css" rel="stylesheet"> -->
+    <style>
+        html,
+        body,
+        #container {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
+		.info {
+			position: absolute;
+			width: 250px;
+			height: 100px;
+			z-index: 100;
+			color: white;
+			margin: 20px;
+			line-height: 1.8rem;
+		}
+    </style>
+</head>
+
+<body>
+	
+    <div id="container" class="container">
+		<div class="info" style="width: 420px">
+			<div class="input-item">
+			  <div class="input-item-prepend">
+				<span class="input-item-text" style="width:10rem;">请输入查询的疾病名称</span>
+			  </div>
+				<div class = "searchForm" style="width: 420px;">
+					<input id='tipinput' type="text" placeholder="请输入查询的疾病名称">
+					<input id = 'searchbtn' type="submit" value="查询">
+					<span id = 'showDiseaseKG'></span>
+					<a id = 'diseaseHref'></a>
+					<span id = 'knowMore'></span>
+				</div>
+			</div>
+			<div class = "introduction" id = "intro" name = "intro" style="width: 420px"><b>说明：
+				<br>1）圆圈代表医院
+				<br>2）圆圈大小表示医院的专业度和总体规模的综合评分
+				<br>3）圆圈透明度表示医院的热度，热度越高的颜色越深 <br>3）
+			<image src="./icons/redCircleSolid.svg" style="position:relative; top:3px" width="15" height="15">（红色）：三级医院<br>
+			&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp<image src="./icons/yellowCircleSolidArt.svg" style="position:relative; top:3px; right:1px" width="15" height="15">（黄色）：二级医院<br>
+			&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp<image src="./icons/greenCircleSolidArt.svg" style="position:relative; top:3px; right:1px" width="15" height="15">（绿色）：一级医院<br>
+			&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp<image src="./icons/blueCircleSolid.svg" style="position:relative; top:3px; right:1px" width="15" height="15">（蓝色）：私立医院
+			<br>注：医院数据来源于好大夫在线平台</b></div>
+		</div>
+		<!--<div class = "wordCloudName" id = "wordCloudId" style="width:100px; height:100px; position: relative; z-index:100; color:white; margin: 500px">fdsdsfasd</div>-->
+	</div>
+
+    <script src="https://webapi.amap.com/maps?v=1.4.15&key=5583181705c1a628fde7411036ced30a"></script>
+    <script src="https://webapi.amap.com/loca?v=1.3.2&key=5583181705c1a628fde7411036ced30a"></script>
+	<script src='https://cdn.bootcss.com/echarts/3.7.0/echarts.simple.js'></script>
+	<script src='./js/echarts-wordcloud.js'></script>
+	<script src="./js/jquery-3.5.1.js"></script>
+	<script src="./js/alert.js"></script>
+	
+    <script type="text/javascript">	
+		
+		var infoWin;
+		var tableDom;
+		// var infoDom;
+		var divDom;
+		/**
+		 * 封装便捷的撞题
+		 * @param {AMap.Map} map
+		 * @param {Array} event
+		 * @param {Object} content
+		 */
+		function openInfoWin(map, event, longitude, latitude, wordClouds, content) {
+		    if (!infoWin) {
+		        infoWin = new AMap.InfoWindow({
+					autoMove:false,
+		            isCustom: true,  //使用自定义窗体
+					// content: createInfoWindow(title,content.join("<br>")),  //传入 dom 对象，或者 html 字符串
+					offset: new AMap.Pixel(400, -30)
+		        });
+		    }
+
+		    // console.log(wordClouds);
+		    // console.log(wordClouds instanceof Array);
+			// console.log(typeof(wordClouds));
+		
+		    // var x = event.offsetX;
+		    // var y = event.offsetY;
+			// var test = lnglat;
+			// var ss = lnglat.split(',');
+			
+			var x = longitude;
+			var y = latitude;
+
+			var lngLat = new AMap.LngLat(x,y);
+
+			//词云图原生背景
+			// if (!tableDom) {
+			// 	let infoDom = document.createElement('div');
+			// 	infoDom.className = 'info';
+			// 	tableDom = document.createElement('table');
+			// 	tableDom.id = 'tableID';
+			// 	tableDom.style.cssFloat = 'left';
+			// 	infoDom.appendChild(tableDom);
+			//
+			// 	divDom = document.createElement('div');
+			// 	divDom.className = 'wordCloudDom';
+			// 	divDom.id = 'wordCloudMain';
+			// 	divDom.style.width = "600px";
+			// 	divDom.style.height = "400px";
+			// 	divDom.style.position = "relative";
+			// 	divDom.style.margin = "-400px 100px -300px 100px";
+			// 	divDom.style.backgroundColor = "#FFFFFF";
+			// 	divDom.style.cssFloat = 'left';
+			// 	infoDom.appendChild(divDom);
+			//
+			// 	infoWin.setContent(infoDom);
+			// }
+
+
+			//词云图白色背景
+		    if (!tableDom) {
+		        let infoDom = document.createElement('div');
+		        infoDom.className = 'info';
+		        infoDom.style.width = "800px";
+		        tableDom = document.createElement('table');
+		        tableDom.id = 'tableID';
+		        tableDom.style.cssFloat = 'left';
+		        infoDom.appendChild(tableDom);
+
+		        // brNode = document.createElement("br");
+		        // infoDom.appendChild(brNode);
+
+				console.log(typeof(wordClouds));
+				console.log(wordClouds);
+
+				if(wordClouds != null && wordClouds != ""){
+					parentDiv = document.createElement('div');
+					parentDiv.id = 'parentDivId';
+					parentDiv.className = 'parentName';
+					parentDiv.style.zIndex = '999';
+					parentDiv.style.width = "300px";
+					parentDiv.style.height = "220px";
+					parentDiv.style.background = "transparent";
+					parentDiv.style.cssFloat = 'left';
+					parentDiv.style.margin = "-220px 100px -300px 350px";
+					// parentDiv.style.marginTop = '-200px';
+					// parentDiv.style.marginLeft = '-200px';
+
+					infoDom.appendChild(parentDiv);
+
+					divDom = document.createElement('div');
+					divDom.className = 'wordCloudDom';
+					divDom.id = 'wordCloudMain';
+					divDom.style.width = "300px";
+					divDom.style.height = "220px";
+
+					parentDiv.appendChild(divDom);
+				}
+
+		        infoWin.setContent(infoDom);
+		    }
+		
+		    var trStr = '';
+		    for (var name in content) {
+		        var val = content[name];
+		        trStr +=
+		            '<tr>' +
+		                '<td class="label" style="width: 130px; text-align: right">' + name + '</td>' +
+		                '<td>&nbsp;</td>' +
+		                '<td class="content" style="width: 200px">' + val + '</td>' +
+		            '</tr>'
+		    }
+		
+		    tableDom.innerHTML = trStr;
+
+			var chart = echarts.init(divDom);
+
+			var option = {
+				tooltip: {
+					// trigger: "item",
+					// backgroundColor: "rgba(255,255,255,0.8)", //设置背景图片 rgba格式
+					// color: "black",
+					// borderWidth: "1", //边框宽度设置1
+					// borderColor: "gray", //设置边框颜色
+					// textStyle: {
+					// 	color: "black" //设置文字颜色
+					// },
+				},
+				series: [ {
+					type: 'wordCloud',
+					gridSize: 2,
+					sizeRange: [12, 50],
+					rotationRange: [-90, 90],
+					shape: 'pentagon',
+					width: 300,
+					height: 220,
+					// center: [-200,-200],
+					left: 0,
+					top: 0,
+					right: null,
+					bottom: null,
+					drawOutOfBound: false,
+					//设置背景颜色
+					backgroundColor: '#FFFFFF',
+					textStyle: {
+						normal: {
+							color: function () {
+								return 'rgb(' + [
+									Math.round(Math.random() * 160),
+									Math.round(Math.random() * 160),
+									Math.round(Math.random() * 160)
+								].join(',') + ')';
+							}
+						},
+						emphasis: {
+							shadowBlur: 10,
+							shadowColor: '#333'
+						}
+					},
+					data: eval(wordClouds)
+				} ]
+			};
+
+			chart.clear();
+
+			setTimeout(chart.setOption(option), 500);
+
+			infoWin.open(map, lngLat);
+		}
+		
+		function closeInfoWin() {
+		    if (infoWin) {
+		        infoWin.close();
+		    }
+		}
+
+		var wordCloudWin;
+
+		/**
+		 *  判断字符串是否为空
+		 * @param obj
+		 * @returns {*}
+		 */
+		function isEmpty(obj) {
+			if (typeof obj == "undefined" || obj == null || obj == "") {
+				return true;
+			} else {
+				return false;
+			}
+		}
+
+		$('#searchbtn').click(function () {//按钮点击事件
+
+			$('#showDiseaseKG').html("");
+			$('#knowMore').html("");
+			$('#diseaseHref').text("");
+			// console.log("111");
+			var content = document.getElementById("tipinput").value;
+
+			var base_path = "localhost:8080"
+
+			var data=[];
+			$.ajax({
+				type:"post",
+				url:"/hospital/"+ content,
+				data:{},
+				async: false,
+				success:function (datas) {
+					data=datas;
+
+				}
+			});
+			layer.setData(data, {
+				lnglat:(res) => {
+				// data 为每一条数据
+				var data = res.value;
+			// 返回要求的'lng, lat'格式
+			return [data.longitude, data.latitude]
+		},
+			type: 'json'
+		});
+
+			layer.render();
+
+			// link = $('<a/>').attr({
+			// 	href : 'https://www.baidu.com',
+			// 	// id : $(this).attr('id') + (i + 1),
+			// 	// class: 'myLink'
+			// 	// text : content
+			// });
+			// // link.html("");
+			// link.html(content);
+
+			if(!isEmpty(content) && !isEmpty(data)){
+				$('#showDiseaseKG').html("关于");
+				// $('#diseaseHref').attr("href","http://www.baidu.com");
+				$('#diseaseHref').attr("target","_blank");
+				$('#diseaseHref').text(content);
+				localStorage.setItem("DiseaseName", content);
+				// $('#diseaseHref').attr("href","toPage?url=/DiseaseVisual.html");
+				$('#diseaseHref').attr("href","/toDiseaseKG");
+				// if(content == "感冒"){
+				// 	// window.open ('DiseaseKG.html');
+				// 	$('#diseaseHref').attr("href","/DiseaseKG.html");
+				// }else{
+				// 	$('#diseaseHref').attr("href","http://www.baidu.com");
+				// }
+				$('#diseaseHref').css("color","#58ff05");
+				$('#knowMore').html("了解更多");
+			}else if(isEmpty(data)){
+				new $Msg({
+					content:"请输入正确的疾病名称",
+					type:"success",
+					// cancle:function(){
+					// 	let cancle = new $Msg({
+					// 		// content:"我是取消后的回调"
+					// 	})
+					// },
+					// confirm:function(){
+					// 	// new $Msg({content:"我是确定后的回调"})
+					// }
+				})
+
+		}
+
+	});
+
+
+		// $('#tipinput').bind('input', function () {//input propertychange 当输入框里的值有变化时执行此函数
+		// 	// console.log("111");
+		// 	var content = document.getElementById("tipinput").value;
+		//
+		// 	var base_path = "localhost:8080"
+		//
+		// 	var data=[];
+		// 	$.ajax({
+		// 		type:"get",
+		// 		url:"/hospital/"+ content,
+		// 		data:{},
+		// 		async: false,
+		// 		success:function (datas) {
+		// 			data=datas;
+		//
+		// 		}
+		// 	});
+		// 	layer.setData(data, {
+		// 		lnglat:(res) => {
+		// 			// data 为每一条数据
+		// 			var data = res.value;
+		// 			// 返回要求的'lng, lat'格式
+		// 			return [data.longitude, data.latitude]
+		// 		},
+		// 		type: 'json'
+		// 	});
+		//
+		// 	layer.render();
+		//
+		// });
+
+		function random(min, max) {
+
+			return Math.floor(Math.random() * (max - min)) + min;
+
+		}
+
+		
+        var map = new AMap.Map('container', {
+            mapStyle: 'amap://styles/d341933516c94931aff963ca04f73f4b',
+            zoom:  8.56,
+            center: [121.527065, 31.3162],
+            features: ['bg', 'road'],
+			resizeEnable: true,
+            // Loca 自 1.2.0 起 viewMode 模式默认为 3D，如需 2D 模式，请显示配置。
+            viewMode: '3D'
+        });
+		
+		
+		var options = {
+			'showButton': true,//是否显示定位按钮
+			'buttonPosition': 'LB',//定位按钮的位置
+			'timeout': 100000,
+			/* LT LB RT RB */
+			'buttonOffset': new AMap.Pixel(10, 20),//定位按钮距离对应角落的距离
+			'showMarker': true,//是否显示定位点
+			'markerOptions':{//自定义定位点样式，同Marker的Options
+			  'offset': new AMap.Pixel(-18, -36),
+			  'content':'<img src="./icons/user.png" style="width:40px;height:40px"/>'
+			},
+			'showCircle': false,//是否显示定位精度圈
+			'circleOptions': {//定位精度圈的样式
+				'strokeColor': '#0093FF',
+				'noSelect': true,
+				'strokeOpacity': 0.5,
+				'strokeWeight': 1,
+				'fillColor': '#02B0FF',
+				'fillOpacity': 0.25
+			}
+		}
+		
+		AMap.plugin('AMap.Geolocation', function() {
+			var geolocation = new AMap.Geolocation(options);
+			geolocation.getCurrentPosition();
+			map.addControl(geolocation);
+		});
+		
+
+        var layer = new Loca.PointLayer({
+			eventSupport: true,
+            map: map,
+			fitView: true
+        });
+
+		var data = [];
+		
+		layer.on('mousemove', function (ev) {
+			// 事件类型
+			var type = ev.type;
+			// 当前元素的原始数据
+			var rawData = ev.rawData;
+			// 原始鼠标事件
+			var originalEvent = ev.originalEvent;
+			//元素所在经纬度
+			// var lnglat = ev.lnglat;
+			var commentNum = rawData.comment_num;
+
+			if(commentNum == 0){
+				//打开医院信息窗口
+				openInfoWin(map, originalEvent, rawData.longitude, rawData.latitude, rawData.word_cloud, {
+					'名称': rawData.hospital_name,
+					'位置': rawData.province + "市" + rawData.city + "区",
+					'级别': rawData.hospital_level,
+					'类型': rawData.hospital_type,
+					'电话': rawData.telephone,
+					'评论': rawData.comment_cut,
+					'评论数量': rawData.comment_num
+//				'链接': rawData.disease_hospital_href
+				});
+			}else{
+				//打开医院信息窗口
+				openInfoWin(map, originalEvent, rawData.longitude, rawData.latitude, rawData.word_cloud, {
+					'名称': rawData.hospital_name,
+					'位置': rawData.province + "市" + rawData.city + "区",
+					'级别': rawData.hospital_level,
+					'类型': rawData.hospital_type,
+					'电话': rawData.telephone,
+					'科室医生数量': random(15,30),
+					// '评论': rawData.comment_cut,
+					'评论数量': rawData.comment_num
+//				'链接': rawData.disease_hospital_href
+				});
+			}
+
+			// createcharts();
+			//打开词云图窗口
+			// openWordCloudWin(map, originalEvent, rawData.longitude, rawData.latitude);
+
+		});
+
+		layer.on('mouseleave', function (ev) {
+			closeInfoWin();
+
+			//关闭词云图窗口
+			// closeWordCloudWin();
+		});
+
+		layer.on('click', function(event) {
+
+			var rawDatas = event.rawData;
+
+			var hospiatlHref = rawDatas.disease_hospital_href;
+			var name = rawDatas.hospital_name;
+
+			window.open(hospiatlHref);
+		});
+
+
+		layer.setData(data, {
+			lnglat: function(res) {
+				// data 为每一条数据
+				var data = res.value;
+				// 返回要求的'lng, lat'格式
+				return [data.longitude, data.latitude];
+			},
+			type: 'json'
+		});
+
+
+		layer.setOptions({
+		    style: {
+		        radius: function(res){
+		        	var data = res.value;
+
+		            var nums = data.department_num;
+		            var specialityRank = data.recommend_order;
+					// console.log(typeof(specialityRank));
+		            var transfer = parseInt(specialityRank);
+		            // console.log(typeof (transfer));
+
+		            var totalSize;
+		            var rankSize = 15 - specialityRank / 6;
+		            var scaleSize = nums / 8 + 1;
+					totalSize = Math.round(rankSize + scaleSize);
+					// console.log("rankSize: "+rankSize+"  ,scaleSize:  "+scaleSize+" ,totalSize: "+totalSize);
+					//
+					return totalSize;
+		        },
+		        color: function(res){
+		        	var data = res.value;
+
+		            var level = data.hospital_level;
+		            
+		            if (level.indexOf("三") != -1) return '#FF0000';
+		            else if (level.indexOf("二") != -1) return '#FFFF00';
+		            else if (level.indexOf("一") != -1) return '#7CFC00';
+					else if (level.indexOf("私立") != -1) return '#87CEEB';
+		        },
+				opacity: function(res){
+		        	var data = res.value;
+
+		        	var rank = parseInt(data.recommend_order);
+
+		        	var rankOpacity;
+
+		        	if(rank <= 20){
+		        		rankOpacity = 1 - rank/22;
+					}else{
+		        		rankOpacity = 0.1;
+					}
+
+		        	var finOpacity = Number(rankOpacity.toFixed(2));
+		        	// console.log("透明度： "+finOpacity+"  ，类型是"+typeof(finOpacity)+" ,正常的类型是："+typeof(0.8));
+		        	return finOpacity;
+				},
+
+				borderColor: '#F0F0F0',
+				borderOpacity: 0.1,
+				borderWidth: 1
+		    },
+			selectStyle: {
+				color: 'white',
+				opacity: 1
+			}
+		});
+
+		layer.setFitView();
+
+        layer.render();
+
+    </script>
+</body>
+
+</html>

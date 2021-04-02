@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.visual.search.mapper.HospitalMapper">
+
+    <resultMap id="HospitalResultMap" type="com.visual.search.entity.Hospital">
+        <result column="id" jdbcType="INTEGER" property="id" />
+        <result column="province" jdbcType="VARCHAR" property="province" />
+        <result column="city" jdbcType="VARCHAR" property="city" />
+        <result column="hospital_name" jdbcType="VARCHAR" property="hospitalName" />
+        <result column="hospital_level" jdbcType="VARCHAR" property="hospitalLevel" />
+        <result column="hospital_type" jdbcType="VARCHAR" property="hospitalType" />
+        <result column="department_num" jdbcType="VARCHAR" property="departmentNum" />
+        <result column="doctor_num" jdbcType="VARCHAR" property="doctorNum" />
+        <result column="telephone" jdbcType="VARCHAR" property="telephone" />
+        <result column="hospital_href" jdbcType="VARCHAR" property="hospitalHref" />
+        <result column="longitude" jdbcType="VARCHAR" property="longitude" />
+        <result column="latitude" jdbcType="VARCHAR" property="latitude" />
+    </resultMap>
+
+    <!--<select id="queryAllByDisease" resultType="Map" parameterType="String">-->
+        <!--select distinct a.* from hospital_shanghai a inner join disease_rechospital_shanghai b on a.hospital_name = b.hospital_name-->
+        <!--where b.disease_name = #{disease} group by b.recommend_order limit 20-->
+    <!--</select>-->
+
+    <select id="queryAllByDisease" resultType="Map" parameterType="String">
+        select a.province,a.city,a.hospital_name,a.hospital_level,a.hospital_type,a.department_num,a.doctor_num,a.telephone,
+        a.longitude,a.latitude,b.disease_hospital_href,b.recommend_order,b.comment_cut,b.comment_num,b.word_cloud from hospital_shanghai a inner join disease_rechospital_shanghai b
+        on a.hospital_name = b.hospital_name where b.disease_name = #{disease}
+    </select>
+
+</mapper>

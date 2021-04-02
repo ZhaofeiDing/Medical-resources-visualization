@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+
+	<head>
+		<meta charset="utf-8">
+		<title>疾病知识图谱可视化</title>
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+	</head>
+
+	<body>
+		<div role="tabpanel" id="tableData" class="tab-pane active" style="width: 620px" >
+			<div id="container" class="container">
+				<div class="info" style="width: 420px">
+					<div class = "searchForm" style="width: 420px;">
+						<input id='tipinput' type="text" placeholder="请输入查询的疾病名称">
+						<input id = 'searchbtn' type="submit" value="查询">
+						<span id = 'showDiseaseKG'></span>
+						<a id = 'diseaseHref'></a>
+						<span id = 'knowMore'></span>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="graph" class="graphClass" style="height: 800px; width: 1000px;"></div>
+		<!-- <div id="graphID" class="graphClassTwo" style="height: 300px; width: 1000px; background-color: azure;">second</div> -->
+		
+		<!-- <script src="scripts/dhtmlxgantt_neodata.js?v=7.0.11"></script> -->
+		<script src="scripts/testdata.js?v=7.0.11"></script>
+
+		<script src="scripts/codemirror.js"></script>
+		<script src="scripts/codemirror-cypher.js"></script>
+		<script src="scripts/vendor.js"></script>
+		<script src="scripts/neod3.js"></script>
+		<script src="scripts/neod3-visualization.js"></script>
+		<script src="scripts/neo4d3.js"></script>
+		<script src="scripts/cy2neod3.js"></script>
+		<script src="scripts/jquery.dataTables.min.js"></script>
+		<script src="scripts/cypher.datatable.js"></script>
+		<script src="scripts/sweet.js"></script>
+
+		<script src="scripts/jquery.masonry.min.js"></script>
+		<script src="scripts/jquery.rotate.js"></script>
+		<!-- <script src="scripts/top.js"></script> -->
+
+		
+		<script type="text/javascript">
+
+			window.onload = function() {
+				var diseaseName = localStorage.getItem("DiseaseName");
+
+				var query = "match (n: Disease{name:\'"+ diseaseName + "\'}) - [r*1] - (m) return n,r,m";
+
+				trace(query);
+
+			}
+
+			$('#searchbtn').click(function () {//按钮点击事件
+
+				var query = "match (n: Disease{name:\'"+ $("#tipinput").val() + "\'}) - [r*1] - (m) return n,r,m";
+
+				trace(query);
+			
+			});
+			
+			var connection = function () {
+				// configStr = localStorage.getItem("neoconfig");
+				// configJSON = JSON.parse(configStr)
+				// // console.log(configJSON.NEO_SERVER_URL, configJSON.NEO_SERVER_USER, configJSON.NEO_SERVER_PSW)
+				// config = {
+				//     url: "http://" + configJSON.NEO_SERVER_URL + ":7474",
+				//     user: configJSON.NEO_SERVER_USER,
+				//     pass: configJSON.NEO_SERVER_PSW
+				// };
+				config = {
+					url: "http://106.15.10.52:7474",
+					user: "neo4j",
+					pass: "root"
+				};
+				return config;
+			}
+			
+			
+			function execute(content) {
+				var neod3 = new Neod3Renderer();
+			
+				var neo = new Neo(connection);
+				try {
+					var query = content;
+					console.log("查询语句："+query);
+					console.log("Executing Query", query);
+					neo.executeQuery(query, {}, function (err, res) {
+						res = res || {}
+						var graph = res.graph;
+						// sweetAlert("hahhaha");
+						console.log("err:"+err);
+						console.log("res:"+res);
+						console.log("graph:"+graph);
+						if (graph) {
+							var c = $("#graph");
+							c.empty();
+							console.log("高度："+ $("#graph").height() +" 宽度："+ $("#graph").width());
+							neod3.render("graph", c, graph);
+						} else {
+							if (err) {
+								console.log(err);
+								if (err.length > 0) {
+									sweetAlert("Cypher error", err[0].code + "\n" + err[0].message, "error");
+								} else {
+									sweetAlert("Ajax " + err.statusText, "Status " + err.status + ": " + err.state(), "error");
+								}
+							}
+						}
+					});
+				} catch (e) {
+					console.log(e);
+					sweetAlert("Catched error", e, "error");
+				}
+			}
+			
+			function trace(query) {
+				// var query = "MATCH (n:Disease) where n.name =" + $("#tipinput").val() + "RETURN n";
+				// console.log("数字："+$("#tipinput").val()+"  类型："+type($("#tipinput").val()));
+				// var query = "match (n: Disease{name:\'"+ $("#tipinput").val() + "\'}) - [r*1] - (m) return n,r,m";
+				// var query = "MATCH (n:Disease) RETURN n LIMIT 25";
+				// // if ($("#caseTaskId").val()) {
+				//     query = "MATCH (n) WHERE ID(n)=" + $("#caseTaskId").val() + " WITH n MATCH p = (m) - [*1.." + $("#actionLength").val() + "] -> (n) RETURN n,p";//$("#caseTaskId").val();
+				// } else {
+				//     query = "  MATCH (n)-[r]->(m) RETURN n,r,m";
+				// }
+				// console.log("$(\"#caseTaskId\").val()---->" + $("#caseTaskId").val());
+				clearNodeInfo();
+				execute(query);
+			}
+			
+			function clearNodeInfo() {
+			
+				//neo pane区域
+				// $(".nodeId").text("");
+				// $(".caseId").text("");
+				// $(".nodeName").text("");
+				$("#graph").text("");
+				
+			}
+		
+			
+		</script>
+	</body>
+
+</html>
